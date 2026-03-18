@@ -1,0 +1,5 @@
+### 测试考勤打卡接口
+POST http://localhost:8080/student/attendance
+Content-Type: application/json
+
+"42411169"
