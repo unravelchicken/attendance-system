@@ -2,66 +2,40 @@ package com.example.attendance.controller;
 
 import com.example.attendance.common.Result;
 import com.example.attendance.pojo.Student;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import com.example.attendance.pojo.AttendanceRecord;
-import java.util.Arrays;
-import java.util.List;
-
+import com.example.attendance.service.StudentService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+// Controller层，加@RestController
 @RestController
+@RequestMapping("/student")
 public class StudentController {
-
-    // 接口1：获取学生信息（GET请求）
-    @GetMapping("/student/info")
-    public String getStudentInfo() {
-        return "姓名：蒋沛珍，学号：42411169，班级：计科2班";
+    // 注入Service（面向接口编程）
+    @Autowired
+    private StudentService studentService;
+    // 把启动类里的hello接口移到这里
+    @GetMapping("/hello")
+    public String hello() {
+        return "欢迎来到班级考勤管理系统！";
     }
-
-    // 接口2：考勤打卡（POST请求）
-    @PostMapping("/student/attendance")
-    public String checkAttendance(@RequestBody String studentId) {
-        return "学号为 " + studentId + " 的学生打卡成功！";
+    // 把启动类里的about接口移到这里
+    @GetMapping("/about")
+    public String about() {
+        return "姓名：蒋沛珍，专业：计算机科学与技术";
     }
-
-    // 接口3：获取课程列表（GET请求）
-    @GetMapping("/student/courses")
-    public List<String> getCourses() {
-        return Arrays.asList("SpringBoot开发实践", "计算机网络", "数据结构", "数据库原理");
+    // 学生接口
+    @PostMapping("/create")
+    public Result<String> createStudent(@RequestBody Student student) {
+        try {
+            String result = studentService.createStudent(student);
+            return Result.success(result);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
     }
-
-    // 1. 路径参数：根据学号查询学生
-    @GetMapping("/student/{id}")
+    // 查询学生接口
+    @GetMapping("/{id}")
     public Result<Student> getStudentById(@PathVariable String id) {
-        Student student = new Student();
-        student.setStudentId(id);
-        student.setName("蒋沛珍");
-        student.setClassName("计科2班");
-        student.setAge(20);
+        Student student = studentService.getStudentById(id);
         return Result.success(student);
-    }
-    // 2. 查询参数：根据班级和页码查询学生列表
-    @GetMapping("/student/search")
-    public Result<List<Student>> searchStudent(
-            @RequestParam String className,
-            @RequestParam(defaultValue = "1") int page
-    ) {
-        // 模拟班级学生列表
-        List<Student> students = Arrays.asList(
-                new Student("42411169", "蒋沛珍", className, 20),
-                new Student("42411170", "张三", className, 21),
-                new Student("42411171", "李四", className, 20)
-        );
-        return Result.success(students);
-    }
-    // 3. JSON体参数：更新考勤记录
-    @PostMapping("/attendance/update")
-    public Result<String> updateAttendance(@RequestBody AttendanceRecord record) {
-        // 模拟更新逻辑
-        System.out.println("收到打卡数据：" + record);
-        return Result.success("学号 " + record.getStudentId() + " 打卡成功！状态：" + record.getStatus());
     }
 }

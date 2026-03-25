@@ -1,5 +1,22 @@
-### 测试考勤打卡接口
-POST http://localhost:8080/student/attendance
+### 测试1：新增学生（正常情况，Service校验通过）
+POST http://localhost:8080/student/create
 Content-Type: application/json
 
-"42411169"
+{
+  "studentId": "42411169",
+  "name": "蒋沛珍",
+  "className": "计算机科学与技术2班"
+}
+
+### 测试2：新增学生（学号为空，触发Service校验，课件要求的业务校验）
+POST http://localhost:8080/student/create
+Content-Type: application/json
+
+{
+  "studentId": "",
+  "name": "蒋沛珍",
+  "className": "计算机科学与技术2班"
+}
+
+### 测试3：根据学号查询学生（验证数据插入成功）
+GET http://localhost:8080/student/42411169
