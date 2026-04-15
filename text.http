@@ -43,5 +43,41 @@ Content-Type: application/json
   "role": "teacher"
 }
 
-### 测试：删除用户（标准DELETE请求）
+### 测试：删除用户
 DELETE http://localhost:8080/user/delete/3
+
+### 测试：新增用户（绝对不重复的用户名）
+POST http://localhost:8080/user/add
+Content-Type: application/json
+
+{
+  "username": "zhangsan002",
+  "password": "123456",
+  "realName": "张三测试",
+  "role": "student"
+}
+
+### 测试：新增用户（JPA自动生成INSERT SQL）
+POST http://localhost:8080/user/add
+Content-Type: application/json
+
+{
+  "username": "jpa_test001",
+  "password": "123456",
+  "realName": "JPA测试用户",
+  "role": "student"
+}
+
+### 测试：更新用户（JPA自动生成UPDATE SQL）
+PUT http://localhost:8080/user/update
+Content-Type: application/json
+
+{
+  "id": 6,
+  "password": "654321",
+  "realName": "JPA测试用户-更新",
+  "role": "teacher"
+}
+
+### 测试：删除用户（JPA自动生成DELETE SQL）
+DELETE http://localhost:8080/user/delete/6

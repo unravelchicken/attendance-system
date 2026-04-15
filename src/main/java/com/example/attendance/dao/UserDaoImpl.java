@@ -5,19 +5,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 
-@Repository // 标记为数据访问组件
+@Repository
 public class UserDaoImpl implements UserDao {
 
-    // 注入 JdbcTemplate
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    /**
-     * 1. 新增用户
-     */
+    //新增用户
     @Override
     public void insert(User user) {
         String sql = "INSERT INTO [user] (username, password, real_name, role, create_time) VALUES (?, ?, ?, ?, ?)";
@@ -31,9 +27,8 @@ public class UserDaoImpl implements UserDao {
         );
     }
 
-    /**
-     * 2. 更新用户
-     */
+
+     //更新用户
     @Override
     public void update(User user) {
         String sql = "UPDATE [user] SET password = ?, real_name = ?, role = ? WHERE id = ?";
@@ -46,18 +41,14 @@ public class UserDaoImpl implements UserDao {
         );
     }
 
-    /**
-     * 3. 根据ID删除用户
-     */
+    //根据ID删除用户
     @Override
     public void deleteById(Long id) {
         String sql = "DELETE FROM [user] WHERE id = ?";
         jdbcTemplate.update(sql, id);
     }
 
-    /**
-     * 4. 根据ID查询用户
-     */
+    ///根据ID查询用户
     @Override
     public User findById(Long id) {
         String sql = "SELECT * FROM [user] WHERE id = ?";
@@ -68,9 +59,7 @@ public class UserDaoImpl implements UserDao {
         );
     }
 
-    /**
-     * 5. 根据用户名查询用户
-     */
+    //根据用户名查询用户
     @Override
     public User findByUsername(String username) {
         String sql = "SELECT * FROM [user] WHERE username = ?";
@@ -81,13 +70,11 @@ public class UserDaoImpl implements UserDao {
                     username
             );
         } catch (Exception e) {
-            return null; // 查不到返回null，不报错
+            return null;
         }
     }
 
-    /**
-     * 6. 查询所有用户
-     */
+    //查询所有用户
     @Override
     public List<User> findAll() {
         String sql = "SELECT * FROM [user]";
@@ -97,9 +84,7 @@ public class UserDaoImpl implements UserDao {
         );
     }
 
-    /**
-     * 7. 根据角色查询用户
-     */
+    //根据角色查询用户
     @Override
     public List<User> findByRole(String role) {
         String sql = "SELECT * FROM [user] WHERE role = ?";
@@ -110,9 +95,7 @@ public class UserDaoImpl implements UserDao {
         );
     }
 
-    /**
-     * 8. 统计某角色的用户数量
-     */
+    //统计某角色的用户数量
     @Override
     public Integer countByRole(String role) {
         String sql = "SELECT COUNT(*) FROM [user] WHERE role = ?";

@@ -1,6 +1,6 @@
 package com.example.attendance.service.impl;
 
-import com.example.attendance.dao.UserDao;
+import com.example.attendance.dao.UserRepository;
 import com.example.attendance.pojo.User;
 import com.example.attendance.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,40 +9,37 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * UserService实现类：封装Dao，添加业务逻辑
+ * UserService实现类：JPA版，用UserRepository替代JdbcTemplate
+ * 无需写SQL，代码大幅简化
  */
-@Service // 标记为业务逻辑层，Spring自动扫描
+@Service
 public class UserServiceImpl implements UserService {
 
-    // 注入UserDao
+    // 注入UserRepository（JPA自动实现，直接用）
     @Autowired
-    private UserDao userDao;
+    private UserRepository userRepository;
 
     /**
-     * 1. 新增用户
+     * 1. 新增用户（用户名校验+自动设置创建时间）
      */
     @Override
     public void addUser(User user) {
-        // 校验：用户名不能为空
+        // 校验用户名非空
         if (!StringUtils.hasLength(user.getUsername())) {
             throw new RuntimeException("用户名不能为空");
         }
-        // 校验：用户名不能重复
-        User existUser = null;
-        try {
-            existUser = userDao.findByUsername(user.getUsername());
-        } catch (Exception e) {
-            // 查不到用户，说明用户名可用，忽略异常
-        }
-        if (existUser != null) {
+        // 校验用户名不重复
+        Optional<User> existUser = userRepository.findByUsername(user.getUsername());
+        if (existUser.isPresent()) {
             throw new RuntimeException("用户名已存在");
         }
         // 自动设置创建时间
         user.setCreateTime(LocalDateTime.now());
-        // 调用Dao新增用户
-        userDao.insert(user);
+        // JPA一行代码完成新增，不用写SQL！
+        userRepository.save(user);
     }
 
     /**
@@ -50,35 +47,42 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void updateUser(User user) {
-        // 校验：用户ID不能为空
-        if (user.getId() == null) {
-            throw new RuntimeException("用户ID不能为空");
+        if (user.getId() == null) throw new RuntimeException("用户ID不能为空");
+        // 校验用户存在
+        if (!userRepository.existsById(user.getId())) {
+            throw new RuntimeException("用户不存在，无法更新");
         }
-        userDao.update(user);
+        // JPA一行代码完成更新
+        userRepository.save(user);
     }
 
     /**
-     * 3. 根据ID删除用户
+     * 3. 按ID删除用户
      */
     @Override
     public void deleteUserById(Long id) {
-        userDao.deleteById(id);
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("用户不存在，无法删除");
+        }
+        // JPA一行代码完成删除
+        userRepository.deleteById(id);
     }
 
     /**
-     * 4. 根据ID查询用户
+     * 4. 按ID查询用户
      */
     @Override
     public User getUserById(Long id) {
-        return userDao.findById(id);
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
     }
 
     /**
-     * 5. 根据用户名查询用户
+     * 5. 按用户名查询用户（登录用）
      */
     @Override
     public User getUserByUsername(String username) {
-        return userDao.findByUsername(username);
+        return userRepository.findByUsername(username).orElse(null);
     }
 
     /**
@@ -86,22 +90,22 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public List<User> getAllUsers() {
-        return userDao.findAll();
+        return userRepository.findAll();
     }
 
     /**
-     * 7. 根据角色查询用户
+     * 7. 按角色查询用户
      */
     @Override
     public List<User> getUsersByRole(String role) {
-        return userDao.findByRole(role);
+        return userRepository.findByRole(role);
     }
 
     /**
-     * 8. 统计某角色的用户数量
+     * 8. 按角色统计用户数
      */
     @Override
     public Integer countUsersByRole(String role) {
-        return userDao.countByRole(role);
+        return userRepository.countByRole(role);
     }
 }

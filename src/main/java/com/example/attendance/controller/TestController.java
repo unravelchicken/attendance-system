@@ -1,34 +1,49 @@
 package com.example.attendance.controller;
 
+import com.example.attendance.dao.AttendanceRepository;
+import com.example.attendance.dao.CourseRepository;
+import com.example.attendance.dao.CourseSelectionRepository;
+import com.example.attendance.dao.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import java.util.List;
-import java.util.Map;
 
+// 测试接口：查询所有表数据，验证数据库连接
 @RestController
+@RequestMapping("/test")
 public class TestController {
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private UserRepository userRepository;
+    @Autowired
+    private CourseRepository courseRepository;
+    @Autowired
+    private CourseSelectionRepository courseSelectionRepository;
+    @Autowired
+    private AttendanceRepository attendanceRepository;
 
-    // user 是关键字，必须加 []
-    @GetMapping("/test/user")
-    public List<Map<String, Object>> testUser() {
-        System.out.println("===== 查询用户表 =====");
-        return jdbcTemplate.queryForList("select * from [user]");
+    // 1. 查询所有用户
+    @GetMapping("/user")
+    public Object findAllUser(){
+        return userRepository.findAll();
     }
 
-    @GetMapping("/test/course")
-    public List<Map<String, Object>> testCourse() {
-        System.out.println("===== 查询课程表 =====");
-        return jdbcTemplate.queryForList("select * from course");
+    // 2. 查询所有课程
+    @GetMapping("/course")
+    public Object findAllCourse(){
+        return courseRepository.findAll();
     }
 
-    @GetMapping("/test/selection")
-    public List<Map<String, Object>> testSelection() {
-        System.out.println("===== 查询选课表 =====");
-        return jdbcTemplate.queryForList("select * from course_selection");
+    // 3. 查询所有选课记录
+    @GetMapping("/selection")
+    public Object findAllSelection(){
+        return courseSelectionRepository.findAll();
+    }
+
+    // 4. 查询所有考勤记录
+    @GetMapping("/attendance")
+    public Object findAllAttendance(){
+        return attendanceRepository.findAll();
     }
 }
