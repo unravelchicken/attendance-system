@@ -4,108 +4,120 @@ import com.example.attendance.dao.UserRepository;
 import com.example.attendance.pojo.User;
 import com.example.attendance.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
-/**
- * UserService实现类：JPA版，用UserRepository替代JdbcTemplate
- * 无需写SQL，代码大幅简化
- */
 @Service
 public class UserServiceImpl implements UserService {
 
-    // 注入UserRepository（JPA自动实现，直接用）
     @Autowired
     private UserRepository userRepository;
 
-    /**
-     * 1. 新增用户（用户名校验+自动设置创建时间）
-     */
+    // ====================== 基础CRUD（保留第七周的） ======================
     @Override
     public void addUser(User user) {
-        // 校验用户名非空
-        if (!StringUtils.hasLength(user.getUsername())) {
-            throw new RuntimeException("用户名不能为空");
-        }
-        // 校验用户名不重复
-        Optional<User> existUser = userRepository.findByUsername(user.getUsername());
-        if (existUser.isPresent()) {
-            throw new RuntimeException("用户名已存在");
-        }
-        // 自动设置创建时间
+        if (!StringUtils.hasLength(user.getUsername())) throw new RuntimeException("用户名不能为空");
+        User exist = userRepository.findByUsername(user.getUsername());
+        if (exist != null) throw new RuntimeException("用户名已存在");
         user.setCreateTime(LocalDateTime.now());
-        // JPA一行代码完成新增，不用写SQL！
         userRepository.save(user);
     }
 
-    /**
-     * 2. 更新用户
-     */
     @Override
     public void updateUser(User user) {
-        if (user.getId() == null) throw new RuntimeException("用户ID不能为空");
-        // 校验用户存在
-        if (!userRepository.existsById(user.getId())) {
-            throw new RuntimeException("用户不存在，无法更新");
-        }
-        // JPA一行代码完成更新
+        if (user.getId() == null) throw new RuntimeException("ID不能为空");
         userRepository.save(user);
     }
 
-    /**
-     * 3. 按ID删除用户
-     */
     @Override
     public void deleteUserById(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new RuntimeException("用户不存在，无法删除");
-        }
-        // JPA一行代码完成删除
         userRepository.deleteById(id);
     }
 
-    /**
-     * 4. 按ID查询用户
-     */
     @Override
     public User getUserById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        return userRepository.findById(id).orElse(null);
     }
 
-    /**
-     * 5. 按用户名查询用户（登录用）
-     */
     @Override
     public User getUserByUsername(String username) {
-        return userRepository.findByUsername(username).orElse(null);
+        return userRepository.findByUsername(username);
     }
 
-    /**
-     * 6. 查询所有用户
-     */
     @Override
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
+    // ====================== 第八周：JPA高级查询（重点！） ======================
+
     /**
-     * 7. 按角色查询用户
+     * 1. 分页查询（默认按创建时间倒序）
+     * @param pageNum 页码（从1开始）
+     * @param pageSize 每页条数
      */
     @Override
-    public List<User> getUsersByRole(String role) {
-        return userRepository.findByRole(role);
+    public Page<User> getUserByPage(int pageNum, int pageSize) {
+        // 构造分页对象：PageRequest.of(页码, 每页条数, 排序)
+        // 注意：JPA页码从0开始，所以 pageNum - 1
+        Pageable pageable = PageRequest.of(
+                pageNum - 1,
+                pageSize,
+                Sort.by(Sort.Direction.DESC, "createTime") // 按创建时间倒序
+        );
+        return userRepository.findAll(pageable);
     }
 
     /**
-     * 8. 按角色统计用户数
+     * 2. 排序查询
+     * @param sortField 排序字段（如 id, username, create_time）
+     * @param isAsc true=正序 false=倒序
      */
     @Override
-    public Integer countUsersByRole(String role) {
-        return userRepository.countByRole(role);
+    public List<User> getUserBySort(String sortField, boolean isAsc) {
+        Sort.Direction direction = isAsc ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort sort = Sort.by(direction, sortField);
+        return userRepository.findAll(sort);
+    }
+
+    /**
+     * 3. 多条件查询（动态拼接条件）
+     * @param username 用户名（模糊查询）
+     * @param role 角色（精确查询）
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     */
+    @Override
+    public List<User> getUserByConditions(String username, String role, LocalDateTime startTime, LocalDateTime endTime) {
+        // Specification 是一个查询条件构造器
+        return userRepository.findAll((Specification<User>) (root, query, criteriaBuilder) -> {
+            // 1. 拼接用户名模糊查询：like %username%
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+
+            if (StringUtils.hasLength(username)) {
+                predicates.add(criteriaBuilder.like(root.get("username"), "%" + username + "%"));
+            }
+
+            // 2. 拼接角色精确查询：role = ?
+            if (StringUtils.hasLength(role)) {
+                predicates.add(criteriaBuilder.equal(root.get("role"), role));
+            }
+
+            // 3. 拼接时间范围查询：create_time between ? and ?
+            if (startTime != null && endTime != null) {
+                predicates.add(criteriaBuilder.between(root.get("createTime"), startTime, endTime));
+            }
+
+            // 把所有条件组合起来
+            return query.where(predicates.toArray(new jakarta.persistence.criteria.Predicate[0])).getRestriction();
+        });
     }
 }

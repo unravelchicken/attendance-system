@@ -3,104 +3,79 @@ package com.example.attendance.controller;
 import com.example.attendance.pojo.User;
 import com.example.attendance.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/user") // 接口统一前缀：/user
+@RequestMapping("/user")
 public class UserController {
 
-    // 注入UserService
     @Autowired
     private UserService userService;
 
-    /**
-     * 1. 新增用户（POST请求）
-     * 接口地址：POST /user/add
-     * 请求体：JSON格式的User对象
-     */
+    // ====================== 基础接口（保留） ======================
     @PostMapping("/add")
     public String addUser(@RequestBody User user) {
-        try {
-            userService.addUser(user);
-            return "新增用户成功！用户名：" + user.getUsername();
-        } catch (Exception e) {
-            return "新增用户失败：" + e.getMessage();
-        }
+        try { userService.addUser(user); return "新增成功"; } catch (Exception e) { return "失败：" + e.getMessage(); }
     }
 
-    /**
-     * 2. 更新用户（PUT请求）
-     * 接口地址：PUT /user/update
-     * 请求体：JSON格式的User对象（必须带id）
-     */
     @PutMapping("/update")
     public String updateUser(@RequestBody User user) {
-        try {
-            userService.updateUser(user);
-            return "更新用户成功！ID：" + user.getId();
-        } catch (Exception e) {
-            return "更新用户失败：" + e.getMessage();
-        }
+        try { userService.updateUser(user); return "更新成功"; } catch (Exception e) { return "失败：" + e.getMessage(); }
     }
 
-    /**
-     * 3. 根据ID删除用户（DELETE请求）
-     * 接口地址：DELETE /user/delete/{id}
-     */
     @DeleteMapping("/delete/{id}")
     public String deleteUser(@PathVariable Long id) {
-        try {
-            userService.deleteUserById(id);
-            return "删除用户成功！ID：" + id;
-        } catch (Exception e) {
-            return "删除用户失败：" + e.getMessage();
-        }
+        try { userService.deleteUserById(id); return "删除成功"; } catch (Exception e) { return "失败：" + e.getMessage(); }
     }
 
-    /**
-     * 4. 根据ID查询用户（GET请求）
-     * 接口地址：GET /user/get/{id}
-     */
     @GetMapping("/get/{id}")
-    public User getUserById(@PathVariable Long id) {
-        return userService.getUserById(id);
-    }
+    public User getById(@PathVariable Long id) { return userService.getUserById(id); }
 
-    /**
-     * 5. 根据用户名查询用户（GET请求，登录校验用）
-     * 接口地址：GET /user/getByUsername/{username}
-     */
-    @GetMapping("/getByUsername/{username}")
-    public User getUserByUsername(@PathVariable String username) {
-        return userService.getUserByUsername(username);
-    }
-
-    /**
-     * 6. 查询所有用户（GET请求）
-     * 接口地址：GET /user/list
-     */
     @GetMapping("/list")
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    public List<User> getAll() { return userService.getAllUsers(); }
+
+    // ====================== 第八周：高级测试接口（重点！） ======================
+
+    /**
+     * 接口1：分页查询
+     * 访问：http://localhost:8080/user/page?pageNum=1&pageSize=2
+     */
+    @GetMapping("/page")
+    public Page<User> getUserByPage(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "2") int pageSize
+    ) {
+        return userService.getUserByPage(pageNum, pageSize);
     }
 
     /**
-     * 7. 根据角色查询用户（GET请求）
-     * 接口地址：GET /user/listByRole/{role}
+     * 接口2：排序查询
+     * 访问：http://localhost:8080/user/sort?sortField=id&isAsc=false
      */
-    @GetMapping("/listByRole/{role}")
-    public List<User> getUsersByRole(@PathVariable String role) {
-        return userService.getUsersByRole(role);
+    @GetMapping("/sort")
+    public List<User> getUserBySort(
+            @RequestParam String sortField,
+            @RequestParam(defaultValue = "false") boolean isAsc
+    ) {
+        return userService.getUserBySort(sortField, isAsc);
     }
 
     /**
-     * 8. 统计某角色的用户数量（GET请求）
-     * 接口地址：GET /user/count/{role}
+     * 接口3：多条件查询
+     * 访问：http://localhost:8080/user/condition?username=admin&role=admin&startTime=2026-01-01T00:00:00&endTime=2026-12-31T23:59:59
      */
-    @GetMapping("/count/{role}")
-    public Integer countUsersByRole(@PathVariable String role) {
-        return userService.countUsersByRole(role);
+    @GetMapping("/condition")
+    public List<User> getUserByCondition(
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime startTime,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime endTime
+    ) {
+        return userService.getUserByConditions(username, role, startTime, endTime);
     }
 }

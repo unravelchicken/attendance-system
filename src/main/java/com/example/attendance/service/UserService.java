@@ -1,49 +1,42 @@
 package com.example.attendance.service;
 
 import com.example.attendance.pojo.User;
+import org.springframework.data.domain.Page;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 用户业务逻辑接口
- */
 public interface UserService {
-    /**
-     * 新增用户
-     */
+
+    // ================= 基础CRUD（第七周） =================
     void addUser(User user);
-
-    /**
-     * 更新用户
-     */
     void updateUser(User user);
-
-    /**
-     * 根据ID删除用户
-     */
     void deleteUserById(Long id);
-
-    /**
-     * 根据ID查询用户
-     */
     User getUserById(Long id);
-
-    /**
-     * 根据用户名查询用户
-     */
     User getUserByUsername(String username);
-
-    /**
-     * 查询所有用户
-     */
     List<User> getAllUsers();
 
+    // ================= 第八周：JPA高级查询（必须加！） =================
     /**
-     * 根据角色查询用户
+     * 分页查询
+     * @param pageNum 页码（从1开始）
+     * @param pageSize 每页条数
      */
-    List<User> getUsersByRole(String role);
+    Page<User> getUserByPage(int pageNum, int pageSize);
 
     /**
-     * 统计某角色的用户数量
+     * 排序查询
+     * @param sortField 排序字段（如 id, username, createTime）
+     * @param isAsc true=正序 false=倒序
      */
-    Integer countUsersByRole(String role);
+    List<User> getUserBySort(String sortField, boolean isAsc);
+
+    /**
+     * 多条件查询
+     * @param username 用户名
+     * @param role 角色
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     */
+    List<User> getUserByConditions(String username, String role, LocalDateTime startTime, LocalDateTime endTime);
 }
