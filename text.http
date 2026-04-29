@@ -81,3 +81,26 @@ Content-Type: application/json
 
 ### 测试：删除用户（JPA自动生成DELETE SQL）
 DELETE http://localhost:8080/user/delete/6
+
+### 1. 测试登录接口（POST请求，必须传JSON）
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "username": "student01",
+  "password": "123456"
+}
+
+### 2. 测试注册接口（POST请求）
+POST http://localhost:8080/auth/register
+Content-Type: application/json
+
+{
+  "username": "student01",
+  "password": "123456",
+  "realName": "测试学生",
+  "role": "student"
+}
+
+### 3. 测试admin权限接口（登录后直接请求）
+GET http://localhost:8080/user/list

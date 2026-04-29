@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface UserService {
 
-    // ================= 基础CRUD（第七周） =================
+    // ================= 基础CRUD =================
     void addUser(User user);
     void updateUser(User user);
     void deleteUserById(Long id);
@@ -16,7 +16,7 @@ public interface UserService {
     User getUserByUsername(String username);
     List<User> getAllUsers();
 
-    // ================= 第八周：JPA高级查询（必须加！） =================
+    // ================= JPA高级查询 =================
     /**
      * 分页查询
      * @param pageNum 页码（从1开始）
