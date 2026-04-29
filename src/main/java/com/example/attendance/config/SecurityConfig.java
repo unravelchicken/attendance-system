@@ -14,31 +14,34 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // 密码加密器（和PPT示例完全一致）
+    // 1. 密码加密器（和PPT示例一致，用于BCrypt加密验证）
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 认证管理器（解决AuthController注入问题）
+    // 2. 认证管理器（解决AuthController注入问题）
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    // 核心配置：直接用Spring Security默认登录页，无404
+    // 3. 核心安全配置（放行路径+表单登录+成功跳转）
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // 关闭CSRF（方便接口测试）
                 .csrf(csrf -> csrf.disable())
-                // 放行关键路径
+                // 放行关键路径（注册接口、欢迎页无需登录）
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/auth/**", "/welcome.html").permitAll()
                         .anyRequest().authenticated()
                 )
-                // 掉自定义loginPage，直接用默认自带登录页
+                // 表单登录配置（用Spring Security自带登录页）
                 .formLogin(form -> form
-                        .permitAll() // 登录页所有人都能访问
+                        .permitAll()
+                        // 登录成功后直接跳转到欢迎页（和你朋友的界面一致）
+                        .defaultSuccessUrl("/welcome.html", true)
                 );
 
         return http.build();

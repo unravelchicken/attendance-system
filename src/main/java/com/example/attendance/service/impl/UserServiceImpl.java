@@ -9,7 +9,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -22,66 +21,25 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
 
-    //注入密码加密器
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    // ====================== 基础CRUD（修改addUser方法，加密码加密） ======================
+    // ====================== 基础CRUD（保留第七周的） ======================
     @Override
     public void addUser(User user) {
         if (!StringUtils.hasLength(user.getUsername())) throw new RuntimeException("用户名不能为空");
         User exist = userRepository.findByUsername(user.getUsername());
         if (exist != null) throw new RuntimeException("用户名已存在");
-        // 新增给密码自动加密（注册时用）
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setCreateTime(LocalDateTime.now());
-        // 默认角色设为student（注册用户默认是学生）
-        if (!StringUtils.hasLength(user.getRole())) {
-            user.setRole("student");
-        }
         userRepository.save(user);
     }
 
-    // 其他方法（updateUser/deleteUser/getUserById等）不用改，保留之前的就行
     @Override
     public void updateUser(User user) {
         if (user.getId() == null) throw new RuntimeException("ID不能为空");
-        // 如果更新了密码，也要加密（可选，注册用的多）
-        if (StringUtils.hasLength(user.getPassword())) {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
         userRepository.save(user);
     }
 
-    // 下面的分页/排序/多条件方法，保留第八周的代码，不用改
     @Override
-    public Page<User> getUserByPage(int pageNum, int pageSize) {
-        Pageable pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(Sort.Direction.DESC, "createTime"));
-        return userRepository.findAll(pageable);
-    }
-
-    @Override
-    public List<User> getUserBySort(String sortField, boolean isAsc) {
-        Sort.Direction direction = isAsc ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Sort sort = Sort.by(direction, sortField);
-        return userRepository.findAll(sort);
-    }
-
-    @Override
-    public List<User> getUserByConditions(String username, String role, LocalDateTime startTime, LocalDateTime endTime) {
-        return userRepository.findAll((Specification<User>) (root, query, cb) -> {
-            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
-            if (StringUtils.hasLength(username)) {
-                predicates.add(cb.like(root.get("username"), "%" + username + "%"));
-            }
-            if (StringUtils.hasLength(role)) {
-                predicates.add(cb.equal(root.get("role"), role));
-            }
-            if (startTime != null && endTime != null) {
-                predicates.add(cb.between(root.get("createTime"), startTime, endTime));
-            }
-            return query.where(predicates.toArray(new jakarta.persistence.criteria.Predicate[0])).getRestriction();
-        });
+    public void deleteUserById(Long id) {
+        userRepository.deleteById(id);
     }
 
     @Override
@@ -99,8 +57,67 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll();
     }
 
+    // ====================== 第八周：JPA高级查询（重点！） ======================
+
+    /**
+     * 1. 分页查询（默认按创建时间倒序）
+     * @param pageNum 页码（从1开始）
+     * @param pageSize 每页条数
+     */
     @Override
-    public void deleteUserById(Long id) {
-        userRepository.deleteById(id);
+    public Page<User> getUserByPage(int pageNum, int pageSize) {
+        // 构造分页对象：PageRequest.of(页码, 每页条数, 排序)
+        // 注意：JPA页码从0开始，所以 pageNum - 1
+        Pageable pageable = PageRequest.of(
+                pageNum - 1,
+                pageSize,
+                Sort.by(Sort.Direction.DESC, "createTime") // 按创建时间倒序
+        );
+        return userRepository.findAll(pageable);
+    }
+
+    /**
+     * 2. 排序查询
+     * @param sortField 排序字段（如 id, username, create_time）
+     * @param isAsc true=正序 false=倒序
+     */
+    @Override
+    public List<User> getUserBySort(String sortField, boolean isAsc) {
+        Sort.Direction direction = isAsc ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort sort = Sort.by(direction, sortField);
+        return userRepository.findAll(sort);
+    }
+
+    /**
+     * 3. 多条件查询（动态拼接条件）
+     * @param username 用户名（模糊查询）
+     * @param role 角色（精确查询）
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     */
+    @Override
+    public List<User> getUserByConditions(String username, String role, LocalDateTime startTime, LocalDateTime endTime) {
+        // Specification 是一个查询条件构造器
+        return userRepository.findAll((Specification<User>) (root, query, criteriaBuilder) -> {
+            // 1. 拼接用户名模糊查询：like %username%
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+
+            if (StringUtils.hasLength(username)) {
+                predicates.add(criteriaBuilder.like(root.get("username"), "%" + username + "%"));
+            }
+
+            // 2. 拼接角色精确查询：role = ?
+            if (StringUtils.hasLength(role)) {
+                predicates.add(criteriaBuilder.equal(root.get("role"), role));
+            }
+
+            // 3. 拼接时间范围查询：create_time between ? and ?
+            if (startTime != null && endTime != null) {
+                predicates.add(criteriaBuilder.between(root.get("createTime"), startTime, endTime));
+            }
+
+            // 把所有条件组合起来
+            return query.where(predicates.toArray(new jakarta.persistence.criteria.Predicate[0])).getRestriction();
+        });
     }
 }
